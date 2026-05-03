@@ -27,6 +27,10 @@ const gameController = new GameController({
 });
 
 const swipeInputHandler = new SwipeInputHandler(boardElement, {
+  canStartDrag: () => gameController.canAcceptInput(),
+  onDragStart: ({ origin }) => boardRenderer.beginDrag(origin),
+  onDragMove: (dragState) => boardRenderer.moveDrag(dragState),
+  onDragEnd: () => boardRenderer.endDrag(),
   onSwipe: (swipe) => gameController.handleSwipe(swipe)
 });
 

@@ -1,3 +1,5 @@
+const SPECIAL_DISH_LABEL = "\u1021\u1011\u1030\u1038\u1019\u102f\u1014\u103a\u1037";
+
 export class GameUI {
   constructor({ scoreElement, statusElement, specialDishElement, legendElement, assetLoader }) {
     this.scoreElement = scoreElement;
@@ -16,7 +18,7 @@ export class GameUI {
   }
 
   setSpecialDishCount(count) {
-    this.specialDishElement.textContent = `Special Dishes: ${count}`;
+    this.specialDishElement.textContent = `${SPECIAL_DISH_LABEL}: ${count}`;
   }
 
   renderLegend() {

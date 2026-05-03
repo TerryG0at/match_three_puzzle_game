@@ -5,21 +5,28 @@ export class SwipeInputHandler {
     this.boardElement = boardElement;
     this.swipeThresholdPixels = options.swipeThresholdPixels ?? BOARD_SETTINGS.swipeThresholdPixels;
     this.onSwipe = options.onSwipe ?? (() => {});
+    this.onDragStart = options.onDragStart ?? (() => {});
+    this.onDragMove = options.onDragMove ?? (() => {});
+    this.onDragEnd = options.onDragEnd ?? (() => {});
+    this.canStartDrag = options.canStartDrag ?? (() => true);
     this.startPoint = null;
 
     this.handlePointerDown = this.handlePointerDown.bind(this);
+    this.handlePointerMove = this.handlePointerMove.bind(this);
     this.handlePointerUp = this.handlePointerUp.bind(this);
     this.handlePointerCancel = this.handlePointerCancel.bind(this);
   }
 
   attach() {
     this.boardElement.addEventListener("pointerdown", this.handlePointerDown);
+    this.boardElement.addEventListener("pointermove", this.handlePointerMove);
     this.boardElement.addEventListener("pointerup", this.handlePointerUp);
     this.boardElement.addEventListener("pointercancel", this.handlePointerCancel);
   }
 
   detach() {
     this.boardElement.removeEventListener("pointerdown", this.handlePointerDown);
+    this.boardElement.removeEventListener("pointermove", this.handlePointerMove);
     this.boardElement.removeEventListener("pointerup", this.handlePointerUp);
     this.boardElement.removeEventListener("pointercancel", this.handlePointerCancel);
   }
@@ -27,10 +34,11 @@ export class SwipeInputHandler {
   handlePointerDown(event) {
     const cellElement = event.target.closest("[data-row][data-column]");
 
-    if (!cellElement) {
+    if (!cellElement || !this.canStartDrag()) {
       return;
     }
 
+    event.preventDefault();
     this.boardElement.setPointerCapture?.(event.pointerId);
     this.startPoint = {
       x: event.clientX,
@@ -38,6 +46,33 @@ export class SwipeInputHandler {
       row: Number(cellElement.dataset.row),
       column: Number(cellElement.dataset.column)
     };
+    this.onDragStart({
+      origin: {
+        row: this.startPoint.row,
+        column: this.startPoint.column
+      }
+    });
+  }
+
+  handlePointerMove(event) {
+    if (!this.startPoint) {
+      return;
+    }
+
+    event.preventDefault();
+    const deltaX = event.clientX - this.startPoint.x;
+    const deltaY = event.clientY - this.startPoint.y;
+    const direction = this.getSwipeDirection(deltaX, deltaY);
+
+    this.onDragMove({
+      origin: {
+        row: this.startPoint.row,
+        column: this.startPoint.column
+      },
+      deltaX,
+      deltaY,
+      direction
+    });
   }
 
   handlePointerUp(event) {
@@ -54,6 +89,10 @@ export class SwipeInputHandler {
     };
 
     this.startPoint = null;
+    this.onDragEnd({
+      origin,
+      direction
+    });
 
     if (!direction) {
       return;
@@ -66,6 +105,15 @@ export class SwipeInputHandler {
   }
 
   handlePointerCancel() {
+    this.onDragEnd({
+      origin: this.startPoint
+        ? {
+            row: this.startPoint.row,
+            column: this.startPoint.column
+          }
+        : null,
+      direction: null
+    });
     this.startPoint = null;
   }
 

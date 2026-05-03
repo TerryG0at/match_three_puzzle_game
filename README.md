@@ -1,6 +1,6 @@
-# Myanmar Food Match-Three Boilerplate
+# မုန့်ပွဲတော် / Mont Pwel Taw
 
-A dependency-free mobile web scaffold for an 8x8 match-three puzzle game using Myanmar food items.
+A bright, mobile-first match-three puzzle game scaffold using Myanmar food items.
 
 ## Run
 
@@ -24,7 +24,7 @@ npm test
 - `src/services/AssetLoader.js` is the central swap point for replacing dummy CSS shapes with `.png` or `.svg` pixel art.
 - `src/core/GridController.js` owns the 8x8 board, swapping, match detection, clearing, gravity, and spawning.
 - `src/core/GameController.js` coordinates input, animation timing, scoring, special dish flags, and cascade resolution.
-- `src/input/SwipeInputHandler.js` detects mobile-friendly up, down, left, and right swipes.
+- `src/input/SwipeInputHandler.js` detects mobile-friendly drag/swipe gestures.
 - `src/ui/BoardRenderer.js` renders the board and contains animation hooks.
 - `src/services/FeedbackService.js` contains placeholders for sound and haptic feedback.
 

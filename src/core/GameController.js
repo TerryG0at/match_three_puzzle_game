@@ -1,5 +1,12 @@
 import { summarizeMatchScore } from "./scoring.js";
 
+const DEFAULT_STATUS_MESSAGE = "\u1019\u102f\u1014\u103a\u1037\u1000\u102d\u102f \u1006\u103d\u1032\u1015\u103c\u102e\u1038 \u101c\u1032\u1015\u102b\u104b";
+const OUT_OF_BOUNDS_MESSAGE = "\u1021\u1015\u103c\u1004\u103a\u1018\u1000\u103a\u1000\u102d\u102f \u101c\u1032\u101c\u102d\u102f\u1037 \u1019\u101b\u1015\u102b\u104b";
+const SWAPPING_MESSAGE = "\u101c\u1032\u1014\u1031\u1015\u102b\u101e\u100a\u103a...";
+const REVERT_MESSAGE = "\u1019\u1010\u1030\u101e\u1031\u1038\u1015\u102b\u104b \u1015\u103c\u1014\u103a\u101c\u1032\u1014\u1031\u1015\u102b\u101e\u100a\u103a...";
+const POINTS_LABEL = "\u1021\u1019\u103e\u1010\u103a";
+const SPECIAL_DISH_MESSAGE = "\u1021\u1011\u1030\u1038\u1019\u102f\u1014\u103a\u1037 \u101b\u1015\u102b\u1015\u103c\u102e\u104b";
+
 export class GameController {
   constructor({ gridController, boardRenderer, feedbackService, ui }) {
     this.gridController = gridController;
@@ -16,7 +23,11 @@ export class GameController {
     this.gridController.initializeGrid();
     this.boardRenderer.render(this.gridController.grid);
     this.updateScoreUI();
-    this.ui.setStatus("Swipe a dish to swap.");
+    this.ui.setStatus(DEFAULT_STATUS_MESSAGE);
+  }
+
+  canAcceptInput() {
+    return !this.isAnimating;
   }
 
   async handleSwipe({ origin, direction }) {
@@ -27,7 +38,7 @@ export class GameController {
     const target = this.gridController.getPositionFromDirection(origin, direction);
 
     if (!target || !this.gridController.isInsideBounds(target)) {
-      this.ui.setStatus("That swap is outside the board.");
+      this.ui.setStatus(OUT_OF_BOUNDS_MESSAGE);
       return;
     }
 
@@ -36,7 +47,7 @@ export class GameController {
     }
 
     this.isAnimating = true;
-    this.ui.setStatus("Swapping...");
+    this.ui.setStatus(SWAPPING_MESSAGE);
     this.feedbackService.playSwapSound();
     this.feedbackService.triggerLightHaptic();
 
@@ -54,11 +65,11 @@ export class GameController {
 
     await this.resolveBoard(target);
     this.isAnimating = false;
-    this.ui.setStatus("Swipe a dish to swap.");
+    this.ui.setStatus(DEFAULT_STATUS_MESSAGE);
   }
 
   async revertSwap(origin, target) {
-    this.ui.setStatus("No match. Reverting...");
+    this.ui.setStatus(REVERT_MESSAGE);
     this.feedbackService.playInvalidSwapSound();
     this.feedbackService.triggerInvalidHaptic();
     await this.boardRenderer.animateInvalidSwap(origin, target);
@@ -97,10 +108,10 @@ export class GameController {
 
   createMatchStatus(scoreSummary) {
     if (scoreSummary.createdSpecialDishes > 0) {
-      return `+${scoreSummary.points} points. Special Dish created!`;
+      return `+${scoreSummary.points} ${POINTS_LABEL}\u104b ${SPECIAL_DISH_MESSAGE}`;
     }
 
-    return `+${scoreSummary.points} points.`;
+    return `+${scoreSummary.points} ${POINTS_LABEL}`;
   }
 
   updateScoreUI() {

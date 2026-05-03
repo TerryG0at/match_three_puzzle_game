@@ -4,6 +4,7 @@ export class BoardRenderer {
   constructor(boardElement, assetLoader) {
     this.boardElement = boardElement;
     this.assetLoader = assetLoader;
+    this.activeDrag = null;
   }
 
   render(grid) {
@@ -54,6 +55,56 @@ export class BoardRenderer {
     }
 
     return tokenElement;
+  }
+
+  beginDrag(position) {
+    const tokenElement = this.getTokenAt(position);
+    const cellElement = this.getCellAt(position);
+
+    this.endDrag();
+
+    if (!tokenElement || !cellElement) {
+      return;
+    }
+
+    tokenElement.classList.add("is-grabbed");
+    cellElement.classList.add("is-drag-origin");
+    this.boardElement.classList.add("is-dragging");
+    this.activeDrag = {
+      origin: position,
+      tokenElement,
+      originCellElement: cellElement,
+      targetCellElement: null
+    };
+  }
+
+  moveDrag({ origin, deltaX, deltaY, direction }) {
+    if (!this.activeDrag || !this.positionsEqual(this.activeDrag.origin, origin)) {
+      return;
+    }
+
+    const cellSize = this.getCellAt(origin)?.getBoundingClientRect().width ?? 56;
+    const dragLimit = cellSize * 1.08;
+    const constrainedDelta = this.constrainDragDelta(deltaX, deltaY, dragLimit);
+
+    this.activeDrag.tokenElement.style.setProperty(
+      "--drag-transform",
+      `translate(${constrainedDelta.x}px, ${constrainedDelta.y}px)`
+    );
+    this.updateDragTarget(origin, direction);
+  }
+
+  endDrag() {
+    if (!this.activeDrag) {
+      return;
+    }
+
+    this.activeDrag.tokenElement.classList.remove("is-grabbed");
+    this.activeDrag.tokenElement.style.removeProperty("--drag-transform");
+    this.activeDrag.originCellElement.classList.remove("is-drag-origin");
+    this.activeDrag.targetCellElement?.classList.remove("is-drag-target");
+    this.boardElement.classList.remove("is-dragging");
+    this.activeDrag = null;
   }
 
   async animateSwap(firstPosition, secondPosition) {
@@ -114,6 +165,60 @@ export class BoardRenderer {
 
   getTokenAt(position) {
     return this.getCellAt(position)?.querySelector(".food-token") ?? null;
+  }
+
+  updateDragTarget(origin, direction) {
+    this.activeDrag.targetCellElement?.classList.remove("is-drag-target");
+    this.activeDrag.targetCellElement = null;
+
+    if (!direction) {
+      return;
+    }
+
+    const target = this.getPositionFromDirection(origin, direction);
+    const targetCellElement = this.getCellAt(target);
+
+    if (!targetCellElement) {
+      return;
+    }
+
+    targetCellElement.classList.add("is-drag-target");
+    this.activeDrag.targetCellElement = targetCellElement;
+  }
+
+  getPositionFromDirection(position, direction) {
+    const offsets = {
+      up: { row: -1, column: 0 },
+      down: { row: 1, column: 0 },
+      left: { row: 0, column: -1 },
+      right: { row: 0, column: 1 }
+    };
+    const offset = offsets[direction] ?? { row: 0, column: 0 };
+
+    return {
+      row: position.row + offset.row,
+      column: position.column + offset.column
+    };
+  }
+
+  constrainDragDelta(deltaX, deltaY, dragLimit) {
+    const isHorizontal = Math.abs(deltaX) > Math.abs(deltaY);
+
+    if (isHorizontal) {
+      return {
+        x: Math.max(-dragLimit, Math.min(deltaX, dragLimit)),
+        y: Math.max(-dragLimit * 0.28, Math.min(deltaY, dragLimit * 0.28))
+      };
+    }
+
+    return {
+      x: Math.max(-dragLimit * 0.28, Math.min(deltaX, dragLimit * 0.28)),
+      y: Math.max(-dragLimit, Math.min(deltaY, dragLimit))
+    };
+  }
+
+  positionsEqual(firstPosition, secondPosition) {
+    return firstPosition.row === secondPosition.row && firstPosition.column === secondPosition.column;
   }
 
   wait(ms) {
